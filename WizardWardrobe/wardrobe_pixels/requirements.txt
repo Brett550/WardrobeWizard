@@ -1,0 +1,13 @@
+pillow
+numpy
+scipy
+pydantic>=2
+pydantic-ai-slim[google,openai]   # google = Gemma via API key, openai = Ollama route
+# optional
+rembg[cpu]         # much better background removal; also clothing-only cuts for worn photos
+pillow-heif        # iPhone HEIC photos
+cairosvg           # SVG uploads
+fastapi
+uvicorn
+python-multipart   # for file uploads in server.py
+pytest             # tests/
