@@ -1,0 +1,1274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wardrobe Wizard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --paper: #ffffff;
+  --surface: #ffffff;
+  --wash: #f2f4f8;
+  --ink: #181425;
+  --ink-soft: #5a6988;
+  --line: #c0cbdc;
+  --magic: #b55088;
+  --magic-ink: #68386c;
+  --spark: #fee761;
+  --today: #fff6c2;
+  --sky: #0099db;
+  --bad: #e43b44;
+  --ok: #3e8948;
+  --b: 3px;
+  --font: "Pixelify Sans", ui-rounded, "Trebuchet MS", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #262b44;
+    --surface: #2f3655;
+    --wash: #3a4466;
+    --ink: #f2f4f8;
+    --ink-soft: #c0cbdc;
+    --line: #5a6988;
+    --magic: #f6757a;
+    --magic-ink: #ffd0d4;
+    --spark: #fee761;
+    --today: #4a4466;
+    --sky: #2ce8f5;
+    --bad: #ff6b74;
+    --ok: #63c74d;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--font);
+  font-size: 16px; line-height: 1.4; -webkit-font-smoothing: none;
+}
+img.px-img, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px dashed var(--magic); outline-offset: 4px; }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* notched pixel border + hard shadow */
+.px {
+  background: var(--surface);
+  box-shadow:
+    0 calc(var(--b) * -1) 0 0 var(--ink), 0 var(--b) 0 0 var(--ink),
+    calc(var(--b) * -1) 0 0 0 var(--ink), var(--b) 0 0 0 var(--ink);
+}
+.px.lift {
+  box-shadow:
+    0 calc(var(--b) * -1) 0 0 var(--ink), 0 var(--b) 0 0 var(--ink),
+    calc(var(--b) * -1) 0 0 0 var(--ink), var(--b) 0 0 0 var(--ink),
+    var(--b) calc(var(--b) * 2) 0 0 var(--ink), calc(var(--b) * 2) var(--b) 0 0 var(--ink);
+}
+.btn {
+  border: 0; cursor: pointer; padding: 8px 14px; margin: var(--b);
+  background: var(--surface); display: inline-flex; align-items: center; gap: 8px;
+}
+.btn:active { transform: translate(2px, 2px); }
+.btn.magic { background: var(--magic); color: #fff; }
+@media (prefers-color-scheme: dark) { .btn.magic { color: #181425; } }
+.link { background: none; border: 0; padding: 4px; cursor: pointer; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 4px; }
+
+/* ---------------- intro ---------------- */
+#intro {
+  position: fixed; inset: 0; display: grid; place-items: center; background: var(--paper);
+  transition: opacity .5s;
+}
+#intro.gone { opacity: 0; pointer-events: none; }
+.stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+#cloud-wrap { height: 190px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; }
+#cloud {
+  position: relative; border: 0; background: none; cursor: pointer; padding: 0;
+  width: 288px; height: 168px; opacity: 0; transform: scale(.4); transition: opacity .35s, transform .35s cubic-bezier(.3,1.6,.5,1);
+}
+#cloud.show { opacity: 1; transform: scale(1); }
+#cloud img { width: 100%; height: 100%; }
+#cloud .label {
+  position: absolute; inset: 0; display: grid; place-content: center; text-align: center;
+  font-weight: 600; font-size: 20px; color: #181425; padding-top: 18px;
+}
+#cloud .label small { font-weight: 400; font-size: 13px; color: #3a4466; }
+#cloud.over { transform: scale(1.06); }
+#demo-link { opacity: 0; transition: opacity .3s .2s; }
+#demo-link.show { opacity: 1; }
+#closet-btn { border: 0; background: none; padding: 0; cursor: pointer; }
+#closet-btn img { width: 280px; height: 300px; display: block; }
+#closet-btn.shake { animation: shake .35s; }
+@keyframes shake { 25% { transform: rotate(-2deg); } 75% { transform: rotate(2deg); } }
+.hint { color: var(--ink-soft); font-size: 15px; min-height: 22px; }
+.logo { display: block; }
+
+/* poof particles + flying photos */
+.puff { position: fixed; width: 18px; height: 18px; background: #fff; pointer-events: none; z-index: 50;
+  box-shadow: 0 -3px 0 0 #181425, 0 3px 0 0 #181425, -3px 0 0 0 #181425, 3px 0 0 0 #181425; }
+.fly { position: fixed; width: 64px; height: 64px; object-fit: cover; z-index: 40; pointer-events: none;
+  box-shadow: 0 -3px 0 0 #181425, 0 3px 0 0 #181425, -3px 0 0 0 #181425, 3px 0 0 0 #181425; background: #fff; }
+
+/* loader */
+#loader { position: fixed; inset: 0; display: none; place-items: center; background: var(--paper); z-index: 60; }
+#loader.on { display: grid; }
+#loader .box { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+#loader img { width: 144px; height: 144px; animation: wiggle 1.1s steps(4) infinite; transform-origin: 20% 80%; }
+@keyframes wiggle { 0%,100% { transform: rotate(-8deg); } 50% { transform: rotate(10deg); } }
+#loader .title { font-size: 22px; font-weight: 600; }
+#loader .count { color: var(--ink-soft); }
+.spark { position: fixed; width: 8px; height: 8px; background: var(--spark); pointer-events: none; z-index: 61;
+  box-shadow: 0 0 0 2px #181425; animation: spark .9s steps(5) forwards; }
+@keyframes spark { to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
+
+/* ---------------- main app ---------------- */
+#app { display: none; height: 100%; opacity: 0; transition: opacity .5s; }
+#app.on { display: grid; }
+#app.show { opacity: 1; }
+#app {
+  grid-template-columns: 284px minmax(0, 1fr) 104px; grid-template-rows: auto minmax(0, 1fr);
+  gap: 20px 24px; padding: 20px 24px;
+}
+header { grid-column: 1 / -1; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+header .week { color: var(--ink-soft); font-size: 18px; }
+header .grow { flex: 1; }
+.mode-pill { font-size: 13px; padding: 4px 10px; margin: var(--b); background: var(--wash); }
+
+.left { display: flex; flex-direction: column; gap: 20px; min-height: 0; }
+.panel { padding: 14px; margin: var(--b); }
+.panel h2 { font-size: 20px; margin: 0; font-weight: 600; }
+.panel .sub { color: var(--ink-soft); font-size: 14px; }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+#closet { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+#closet-grid {
+  flex: 1; min-height: 120px; overflow: auto; display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; padding: 6px; align-content: start;
+}
+.tile {
+  position: relative; aspect-ratio: 1; display: grid; place-items: center; cursor: grab;
+  background: var(--wash); touch-action: none; user-select: none; border: 0; padding: 0;
+}
+.tile img { width: 64px; height: 64px; pointer-events: none; }
+.tile .badge { position: absolute; top: 2px; right: 4px; font-size: 12px; color: var(--magic-ink); font-weight: 600; }
+.tile .worn { position: absolute; bottom: 2px; left: 4px; font-size: 12px; color: var(--ink-soft); }
+.tile.dirty { opacity: .45; cursor: not-allowed; }
+.empty-note { grid-column: 1 / -1; color: var(--ink-soft); font-size: 15px; padding: 8px; }
+
+#hamper { display: flex; align-items: center; gap: 12px; }
+#hamper-drop { border: 0; background: none; padding: 0; cursor: pointer; transition: transform .15s; }
+#hamper-drop img { width: 112px; height: 112px; display: block; }
+#hamper-drop.drop-ok { transform: scale(1.12) rotate(-3deg); }
+#hamper-drop.bounce { animation: bounce .4s; }
+@keyframes bounce { 30% { transform: scale(1.15, .88); } 60% { transform: scale(.95, 1.06); } }
+#hamper .info { display: flex; flex-direction: column; gap: 4px; }
+#hamper .count { font-size: 15px; color: var(--ink-soft); }
+
+/* week board */
+.board-wrap { min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px; }
+#board {
+  display: grid; grid-template-columns: 70px repeat(7, minmax(84px, 1fr)); gap: 8px;
+  min-width: 720px; padding: var(--b);
+}
+.dayhead { text-align: center; padding: 8px 4px; margin: var(--b); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.dayhead.today { background: var(--today); }
+.dayhead .name { font-weight: 600; font-size: 17px; }
+.dayhead .date { color: var(--ink-soft); font-size: 13px; }
+.dayhead .wx { display: flex; align-items: center; gap: 4px; font-size: 14px; }
+.dayhead .wx img { width: 32px; height: 32px; }
+.lock { border: 0; background: none; cursor: pointer; padding: 2px; opacity: .55; }
+.lock[aria-pressed="true"] { opacity: 1; }
+.lock img { width: 24px; height: 24px; display: block; }
+.rowhead { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; color: var(--ink-soft); }
+.rowhead img { width: 40px; height: 40px; opacity: .8; }
+.slot {
+  position: relative; height: 84px; display: grid; place-items: center; margin: var(--b);
+  background: var(--wash); touch-action: none; user-select: none; cursor: grab; border: 0; padding: 0;
+}
+.slot img { width: 64px; height: 64px; pointer-events: none; }
+.slot.empty { background: transparent; cursor: default;
+  box-shadow: 0 -3px 0 0 var(--line), 0 3px 0 0 var(--line), -3px 0 0 0 var(--line), 3px 0 0 0 var(--line); }
+.slot.empty .plus { color: var(--line); font-size: 26px; }
+.slot.nohat { cursor: pointer; background: transparent; color: var(--ink-soft); font-size: 13px;
+  box-shadow: 0 -3px 0 0 var(--line), 0 3px 0 0 var(--line), -3px 0 0 0 var(--line), 3px 0 0 0 var(--line); }
+.slot.nohat img { width: 40px; height: 40px; opacity: .5; }
+.slot .x { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border: 0; padding: 0; cursor: pointer;
+  background: var(--surface); font-size: 14px; line-height: 1; display: none;
+  box-shadow: 0 -2px 0 0 var(--ink), 0 2px 0 0 var(--ink), -2px 0 0 0 var(--ink), 2px 0 0 0 var(--ink); }
+.slot:hover .x, .slot:focus-within .x { display: block; }
+.slot.fresh { animation: pop .35s; }
+@keyframes pop { 40% { transform: scale(1.12); } }
+.drop-ok { outline: 3px solid var(--ok); outline-offset: 3px; }
+.drop-no { outline: 3px solid var(--bad); outline-offset: 3px; }
+#notes { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; margin: var(--b); max-width: 70ch; }
+#notes p { margin: 0; }
+#notes .tip { color: var(--magic-ink); }
+
+/* tool rail */
+.rail { display: flex; flex-direction: column; gap: 14px; }
+.tool {
+  border: 0; cursor: pointer; padding: 10px 4px 8px; margin: var(--b);
+  display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 14px; background: var(--surface);
+}
+.tool img { width: 32px; height: 32px; }
+.tool[aria-expanded="true"] { background: var(--today); }
+.tool:active { transform: translate(2px, 2px); }
+
+#tool-panel {
+  position: fixed; right: 148px; top: 84px; width: 320px; max-height: calc(100vh - 110px); overflow: auto;
+  padding: 16px; z-index: 30; display: none;
+}
+#tool-panel.on { display: block; }
+#tool-panel h2 { margin: 0 0 10px; font-size: 20px; }
+#tool-panel .close { position: absolute; top: 10px; right: 10px; }
+.opt { display: flex; align-items: center; gap: 10px; padding: 6px 4px; cursor: pointer; }
+.opt input { accent-color: var(--magic); width: 18px; height: 18px; }
+.wxrow { display: grid; grid-template-columns: 44px 40px 1fr auto; align-items: center; gap: 8px; padding: 4px 0; }
+.wxrow img { width: 32px; height: 32px; }
+.fine { color: var(--ink-soft); font-size: 13px; margin-top: 10px; }
+.seg { display: flex; gap: 4px; margin: 8px 0; }
+.seg button { padding: 4px 12px; }
+.seg button[aria-pressed="true"] { background: var(--today); }
+
+/* ghost + item sheet + toast */
+.ghost { position: fixed; left: 0; top: 0; width: 80px; height: 80px; pointer-events: none; z-index: 100;
+  filter: drop-shadow(4px 4px 0 rgba(24, 20, 37, .35)); }
+body.dragging, body.dragging * { cursor: grabbing !important; }
+dialog { border: 0; padding: 20px; width: min(380px, 92vw); color: var(--ink); }
+dialog::backdrop { background: rgba(24, 20, 37, .35); }
+.sheet-top { display: flex; gap: 16px; align-items: center; }
+.sheet-top img { width: 128px; height: 128px; background: var(--wash); }
+.field { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; font-size: 14px; color: var(--ink-soft); }
+.field input, .field select { padding: 6px 8px; border: 0; background: var(--wash); color: var(--ink); font-size: 16px;
+  box-shadow: 0 -2px 0 0 var(--ink), 0 2px 0 0 var(--ink), -2px 0 0 0 var(--ink), 2px 0 0 0 var(--ink); margin: 2px; }
+.sheet-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+.guess { color: var(--magic-ink); font-size: 14px; margin-top: 8px; }
+.photo-thumb { width: 56px; height: 56px; object-fit: cover; }
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); opacity: 0;
+  padding: 10px 16px; z-index: 120; transition: opacity .2s, transform .2s; pointer-events: none; max-width: 90vw; }
+#toast.on { opacity: 1; transform: translateX(-50%); }
+#hamper-dialog .list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+
+@media (max-width: 1000px) {
+  #app { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; height: auto; }
+  .rail { flex-direction: row; flex-wrap: wrap; order: -1; }
+  .left { order: 3; }
+  #closet-grid { max-height: 360px; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+  #tool-panel { right: 16px; left: 16px; width: auto; top: 140px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ INTRO ============ -->
+<section id="intro" aria-label="Get started">
+  <div class="stage">
+    <canvas class="logo" id="logo" aria-label="Wardrobe Wizard" role="img"></canvas>
+    <div id="cloud-wrap">
+      <button id="cloud" tabindex="-1" aria-hidden="true">
+        <img class="px-img" id="cloud-img" alt="">
+        <span class="label">Upload photos<small>Drop them here or click to choose</small></span>
+      </button>
+      <button class="link" id="demo-link" tabindex="-1" aria-hidden="true">Try a sample closet instead</button>
+    </div>
+    <button id="closet-btn" aria-label="Open the closet">
+      <img class="px-img" id="closet-img" alt="">
+    </button>
+    <p class="hint" id="hint">Click the closet to open it</p>
+  </div>
+  <input type="file" id="file" accept="image/*,.heic,.heif" multiple hidden>
+</section>
+
+<section id="loader" aria-live="polite">
+  <div class="box">
+    <img class="px-img" id="wand-img" alt="">
+    <div class="title" id="loader-title">Turning photos into pixels</div>
+    <div class="count" id="loader-count"></div>
+  </div>
+</section>
+
+<!-- ============ MAIN ============ -->
+<main id="app" aria-label="Wardrobe Wizard">
+  <header>
+    <canvas id="logo-small" role="img" aria-label="Wardrobe Wizard"></canvas>
+    <span class="week" id="week-label"></span>
+    <span class="grow"></span>
+    <span class="mode-pill px" id="mode-pill"></span>
+  </header>
+
+  <div class="left">
+    <section class="panel px lift" id="closet" aria-labelledby="closet-h">
+      <div class="panel-head">
+        <h2 id="closet-h">Closet</h2>
+        <span class="sub" id="closet-count"></span>
+      </div>
+      <div class="sub" id="closet-filter-note" hidden></div>
+      <div id="closet-grid" data-drop="closet"></div>
+    </section>
+    <section class="panel px lift" id="hamper" aria-label="Laundry hamper">
+      <button id="hamper-drop" data-drop="hamper" aria-label="Open the hamper">
+        <img class="px-img" id="hamper-img" alt="">
+      </button>
+      <div class="info">
+        <h2>Hamper</h2>
+        <span class="count" id="hamper-count"></span>
+        <button class="btn px" id="wash-btn">Wash all</button>
+      </div>
+    </section>
+  </div>
+
+  <section class="board-wrap" aria-label="This week's outfits">
+    <div id="board"></div>
+    <div id="notes" class="px" aria-live="polite"></div>
+  </section>
+
+  <nav class="rail" aria-label="Tools">
+    <button class="tool px lift" data-tool="weather" aria-expanded="false"><img class="px-img" alt="">Weather</button>
+    <button class="tool px lift" data-tool="style" aria-expanded="false"><img class="px-img" alt="">Style</button>
+    <button class="tool px lift" data-tool="plan"><img class="px-img" alt="">Plan week</button>
+    <button class="tool px lift" data-tool="filter" aria-expanded="false"><img class="px-img" alt="">Filter</button>
+    <button class="tool px lift" data-tool="sort" aria-expanded="false"><img class="px-img" alt="">Sort</button>
+    <button class="tool px lift" data-tool="add"><img class="px-img" alt="">Add clothes</button>
+  </nav>
+</main>
+
+<aside id="tool-panel" class="px lift" aria-live="polite"></aside>
+
+<dialog id="sheet" class="px lift"></dialog>
+<dialog id="hamper-dialog" class="px lift"></dialog>
+<div id="toast" class="px lift" role="status"></div>
+
+<script>
+/* =====================================================================
+   Wardrobe Wizard prototype
+   - Sprites come from a JS port of the Python renderer (same templates + palette).
+   - Open with ?api=http://localhost:8000 to send uploads to the FastAPI /sprites backend.
+     Without it, uploads run in demo mode: colors are read in the browser, types are guessed.
+   ===================================================================== */
+const API_BASE = new URLSearchParams(location.search).get('api') || '';
+
+/* ---------------- palette + color math (port of palette.py) ---------------- */
+const PAL = ["#be4a2f","#d77643","#ead4aa","#e4a672","#b86f50","#733e39","#3e2731","#a22633",
+  "#e43b44","#f77622","#feae34","#fee761","#63c74d","#3e8948","#265c42","#193c3e",
+  "#124e89","#0099db","#2ce8f5","#ffffff","#c0cbdc","#8b9bb4","#5a6988","#3a4466",
+  "#262b44","#181425","#ff0044","#68386c","#b55088","#f6757a","#e8b796","#c28569",
+  "#2f3820","#4b5a2a","#6f7d3c","#9aa25a","#b9a77c","#d9c9a3","#8c7a5b",
+  "#1e1e1e","#3a3a3a","#5e5e5e","#8a8a8a","#b4b4b4","#dcdcdc","#2b3f63","#4a6a9c","#1f2a52",
+  "#5b2333","#7a2e3a"];
+const hexToRgb = h => { h = h.replace('#',''); if (h.length === 3) h = [...h].map(c => c + c).join('');
+  return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+const rgbToHex = c => '#' + c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+function lab([r, g, b]) {
+  const f = v => { v /= 255; return v > 0.04045 ? ((v + 0.055) / 1.055) ** 2.4 : v / 12.92; };
+  const R = f(r), G = f(g), B = f(b);
+  let x = (0.4124 * R + 0.3576 * G + 0.1805 * B) / 0.95047, y = 0.2126 * R + 0.7152 * G + 0.0722 * B,
+      z = (0.0193 * R + 0.1192 * G + 0.9505 * B) / 1.08883;
+  const t = v => v > 0.008856 ? Math.cbrt(v) : 7.787 * v + 16 / 116;
+  x = t(x); y = t(y); z = t(z);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+}
+const PAL_LAB = PAL.map(h => lab(hexToRgb(h)));
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+const L = h => lab(hexToRgb(h))[0];
+function nearest(hex, opt = {}) {
+  const t = lab(hexToRgb(hex));
+  const order = PAL_LAB.map((l, i) => [dist(l, t), i]).sort((a, b) => a[0] - b[0]);
+  for (const [, i] of order) {
+    const li = PAL_LAB[i][0];
+    if (opt.darker && li >= L(opt.darker) - 3) continue;
+    if (opt.lighter && li <= L(opt.lighter) + 3) continue;
+    return PAL[i];
+  }
+  return PAL[order[0][1]];
+}
+function hsv(hex) {
+  const [r, g, b] = hexToRgb(hex).map(v => v / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [((h / 6) + 1) % 1, mx ? d / mx : 0, mx];
+}
+function fromHsv(h, s, v) {
+  const i = Math.floor(h * 6), f = h * 6 - i, p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
+  const [r, g, b] = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][((i % 6) + 6) % 6];
+  return rgbToHex([r * 255, g * 255, b * 255]);
+}
+const shift = (hex, dh, ds, dv) => { const [h, s, v] = hsv(hex);
+  return fromHsv((h + dh + 1) % 1, Math.max(0, Math.min(1, s + ds)), Math.max(0, Math.min(1, v * dv))); };
+const rampCache = new Map();
+function ramp(base) {
+  base = base.toLowerCase();
+  if (rampCache.has(base)) return rampCache.get(base);
+  const b = nearest(base);
+  const shade = nearest(shift(base, .025, .10, .70), { darker: b });
+  const light = L(base) > 92 ? b : nearest(shift(base, -.02, -.08, 1.18), { lighter: b });
+  const outline = nearest(shift(base, .04, .15, .38), { darker: shade });
+  const r = { base: b, shade, light, outline };
+  rampCache.set(base, r);
+  return r;
+}
+
+/* ---------------- templates (port of templates.py + underwear, socks) ---------------- */
+const S = 32;
+function build(half = {}, full = {}) {
+  const rows = Array.from({ length: S }, () => '.'.repeat(S));
+  for (const [y, h] of Object.entries(half)) rows[+y] = h + [...h].reverse().join('');
+  for (const [y, f] of Object.entries(full)) rows[+y] = f;
+  return rows;
+}
+const fill = (a, b, s) => Object.fromEntries(Array.from({ length: b - a + 1 }, (_, i) => [a + i, s]));
+const TPL = {
+  tshirt: { cat: 'top', anchor: [16, 11], rows: build({ 4: "......#####t....", 5: "....########t...", 6: "...##########ttt",
+    7: "..##############", 8: ".###############", 9: ".###############", 10: ".###############", 11: ".tttttt#########",
+    ...fill(12, 27, ".......#########") }) },
+  longsleeve: { cat: 'top', anchor: [16, 11], rows: build({ 4: "......#####t....", 5: "....########t...", 6: "...##########ttt",
+    7: "..##############", 8: ".###############", 9: ".###############", 10: ".###############",
+    ...fill(11, 22, ".#####.#########"), 23: ".ttttt.#########", 24: ".ttttt.#########", ...fill(25, 27, ".......#########") }) },
+  hoodie: { cat: 'top', anchor: [16, 12], rows: build({ 2: "...........#####", 3: "..........######", 4: "......#######ddd",
+    5: "....#########ddd", 6: "...###########dd", 7: "..###########l##", 8: ".############l##", 9: ".###############",
+    10: ".###############", ...fill(11, 17, ".#####.#########"), 18: ".#####.###dddddd", ...fill(19, 21, ".#####.###d#####"),
+    22: ".ttttt.###d#####", 23: ".ttttt.###d#####", 24: ".......ttttttttt", 25: ".......ttttttttt" }) },
+  pants: { cat: 'bottom', rows: build({ 3: "......tttttttttt", 4: "......tttttttttt", 5: "......##########",
+    6: "......#d########", 7: "......##d#######", 8: "......###d######", ...fill(9, 11, "......##########"),
+    ...fill(12, 28, "......#########.") }) },
+  shorts: { cat: 'bottom', rows: build({ 6: "........tttttttt", 7: "........tttttttt", 8: "........########",
+    9: "........#d######", 10: "........##d#####", ...fill(11, 13, "........########"), ...fill(14, 20, ".......########.") }) },
+  underwear: { cat: 'underwear', rows: build({ 9: "......tttttttttt", 10: "......llllllllll", 11: "......tttttttttt",
+    ...fill(12, 15, "......#########d"), 16: "......##########", 17: "......#########.", ...fill(18, 21, ".....##########.") }) },
+  socks: { cat: 'socks', rows: build({}, { 4: "........tttttttt................", 5: "........tttttttt................",
+    6: "........tttttttt................", ...fill(7, 17, "........########................"),
+    18: "........#########...............", 19: "........tt#########.............", 20: "........ttt###########..........",
+    21: "........ttt##########ttt........", 22: ".........tt#########tttt........", 23: "..........##########ttt........." }) },
+  sneakers: { cat: 'shoes', rows: build({}, { 9: "....####........................", 10: "...######.......................",
+    11: "...#######......................", 12: "...########l....................", 13: "...#########l#..................",
+    14: "...##########l##................", 15: "...###########l####.............", 16: "...################d###.........",
+    17: "...#################d#####......", 18: "...##################d#######...", 19: "...##########################...",
+    20: "..tttttttttttttttttttttttttttt..", 21: "...tttttttttttttttttttttttttt..." }) },
+  cap: { cat: 'hat', anchor: [16, 12], rows: build({ 7: "...............t", 8: "...........#####", 9: ".........#######",
+    10: "........########", 11: ".......#########", 12: "......##########", 13: "......##########",
+    ...fill(14, 17, ".....###########"), 18: ".....ddddddddddd", 19: "...ttttttttttttt", 20: "..tttttttttttttt",
+    21: "...ttttttttttttt" }) },
+};
+const SUBTYPES = Object.keys(TPL);
+const SUBTYPE_LABEL = { tshirt: 'T-shirt', longsleeve: 'Long sleeve', hoodie: 'Hoodie', pants: 'Pants', shorts: 'Shorts',
+  underwear: 'Underwear', socks: 'Socks', sneakers: 'Sneakers', cap: 'Cap' };
+const CATS = ['hat', 'top', 'bottom', 'underwear', 'socks', 'shoes'];
+const CAT_LABEL = { hat: 'Hat', top: 'Top', bottom: 'Bottom', underwear: 'Undies', socks: 'Socks', shoes: 'Shoes' };
+const CAT_PLURAL = { hat: 'hats', top: 'tops', bottom: 'bottoms', underwear: 'underwear', socks: 'socks', shoes: 'shoes' };
+const CAT_ICON = { hat: 'cap', top: 'tshirt', bottom: 'pants', underwear: 'underwear', socks: 'socks', shoes: 'sneakers' };
+
+/* ---------------- sprite renderer (port of render.py) ---------------- */
+const FONT = { A:"010101111101101",B:"110101110101110",C:"011100100100011",D:"110101101101110",E:"111100110100111",
+  F:"111100110100100",G:"011100101101011",H:"101101111101101",I:"111010010010111",J:"001001001101010",K:"101101110101101",
+  L:"100100100100111",M:"101111111101101",N:"110101101101101",O:"010101101101010",P:"110101110100100",Q:"010101101110011",
+  R:"110101110101101",S:"011100010001110",T:"111010010010010",U:"101101101101111",V:"101101101101010",W:"101101101111101",
+  X:"101101010101101",Y:"101101010010010",Z:"111001010100111","0":"111101101101111","1":"010110010010111",
+  "2":"110001010100111","3":"110001010001110","4":"101101111001001","5":"111100110001110","6":"011100111101111",
+  "7":"111001010010010","8":"111101111101111","9":"111101111001110" };
+const MOTIFS = { star: ["00100","01110","11111","01010","10001"], heart: ["01010","11111","11111","01110","00100"],
+  circle: ["01110","11111","11111","11111","01110"], logo: ["111111","100001","111111"], text: ["1110111","0000000","1111011"] };
+function noise(x, y, seed) { let h = 2166136261; for (const c of `${seed}:${x}:${y}`) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return ((h >>> 0) % 10000) / 10000; }
+function patternColor(x, y, pat, p, s, rp, seed) {
+  switch (pat) {
+    case 'striped': return ((y >> 1) % 2 === 0) ? s : p;
+    case 'vertical_striped': return ((x >> 1) % 2 === 0) ? s : p;
+    case 'checkered': return (((x >> 1) + (y >> 1)) % 2 === 0) ? s : p;
+    case 'plaid': { const h = y % 6 < 2, v = x % 6 < 2; return h && v ? ramp(s).shade : (h || v ? s : p); }
+    case 'polka_dot': { const off = ((y >> 2) % 2) ? 2 : 0; return (y % 4 === 1 && (x + off) % 4 === 1) ? s : p; }
+    case 'floral': { const off = (Math.floor(y / 5) % 2) ? 3 : 0, cx = (x + off) % 6, cy = y % 5;
+      if (cx === 2 && cy === 2) return rp.light; if ((cx === 1 || cx === 3) && cy === 2 || cx === 2 && (cy === 1 || cy === 3)) return s; return p; }
+    case 'camo': { const n = noise(Math.floor(x / 3), Math.floor(y / 3), seed); return n < .33 ? s : n < .55 ? rp.shade : p; }
+    case 'denim': { const n = noise(x, y, seed); return n < .07 ? rp.light : n > .95 ? rp.shade : p; }
+    default: return p;
+  }
+}
+const spriteCache = new Map();
+function spriteCanvas(r) {
+  const t = TPL[r.subtype];
+  const g = t.rows.map(row => [...row]);
+  const primary = nearest(r.primary);
+  let secondary = r.secondary ? nearest(r.secondary) : null;
+  if (secondary === primary) secondary = null;
+  const contrast = L(primary) < 60 ? '#ffffff' : ramp(primary).outline;
+  let accent = r.accent ? nearest(r.accent) : (secondary || contrast);
+  if (accent === primary) accent = contrast;
+  const rp = ramp(primary);
+  const trim = secondary || (t.cat === 'shoes' ? '#ffffff' : primary);
+  const rt = ramp(trim);
+  const patSecond = secondary || (L(primary) < 50 ? rp.light : rp.shade);
+  const lace = L(primary) < 60 ? '#ffffff' : rp.shade;
+  const m = (x, y) => x >= 0 && y >= 0 && x < S && y < S && g[y][x] !== '.';
+  const c = document.createElement('canvas'); c.width = c.height = S;
+  const ctx = c.getContext('2d');
+  const put = (x, y, col) => { ctx.fillStyle = col; ctx.fillRect(x, y, 1, 1); };
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const ch = g[y][x];
+    if (ch === '.') {
+      const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => m(x + dx, y + dy)).map(([dx, dy]) => g[y + dy][x + dx]);
+      if (nb.length) put(x, y, nb.includes('t') && !nb.includes('#') ? rt.outline : rp.outline);
+      continue;
+    }
+    if (ch === 'd') { put(x, y, rp.outline); continue; }
+    if (ch === 'l') { put(x, y, lace); continue; }
+    let base, rr;
+    if (ch === 't') { base = trim; rr = rt; }
+    else { base = patternColor(x, y, r.pattern, primary, patSecond, rp, r.seed); rr = ramp(base); }
+    const shade = !m(x + 1, y) || !m(x + 2, y) || !m(x, y + 1);
+    const light = !shade && (!m(x - 1, y) || !m(x, y - 1));
+    put(x, y, shade ? rr.shade : light ? rr.light : base);
+  }
+  let glyph = null;
+  if (r.graphic === 'letter' && FONT[(r.letter || '').toUpperCase()]) {
+    const bits = FONT[r.letter.toUpperCase()]; glyph = [0, 3, 6, 9, 12].map(i => bits.slice(i, i + 3));
+  } else if (r.graphic && r.graphic !== 'none') glyph = MOTIFS[r.graphic] || MOTIFS.logo;
+  if (glyph && t.anchor) {
+    const [cx, top] = t.anchor, left = cx - (glyph[0].length >> 1);
+    glyph.forEach((row, gy) => [...row].forEach((bit, gx) => {
+      const x = left + gx, y = top + gy;
+      if (bit === '1' && g[y] && g[y][x] === '#') put(x, y, accent);
+    }));
+  }
+  return c;
+}
+function spriteURL(r) {
+  const key = JSON.stringify([r.subtype, r.primary, r.secondary, r.accent, r.pattern, r.graphic, r.letter, r.seed]);
+  if (!spriteCache.has(key)) spriteCache.set(key, spriteCanvas(r).toDataURL());
+  return spriteCache.get(key);
+}
+
+/* ---------------- scene art (closet, cloud, wand, hamper, icons) ---------------- */
+const INK = '#181425';
+class PA {
+  constructor(w, h) { this.w = w; this.h = h; this.p = new Array(w * h).fill(null); }
+  set(x, y, c) { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.p[y * this.w + x] = c; }
+  get(x, y) { return x >= 0 && y >= 0 && x < this.w && y < this.h ? this.p[y * this.w + x] : null; }
+  rect(x, y, w, h, c) { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) this.set(i, j, c); }
+  ell(cx, cy, rx, ry, c, keep) { for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) {
+    const dx = (x + .5 - cx) / rx, dy = (y + .5 - cy) / ry;
+    if (dx * dx + dy * dy <= 1 && (!keep || keep(x, y))) this.set(x, y, typeof c === 'function' ? c(x, y) : c); } }
+  line(x0, y0, x1, y1, c) { const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let e = dx + dy; for (;;) { this.set(x0, y0, c); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e;
+      if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } } }
+  outline(c = INK, diag = false) { const add = [];
+    for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++)
+      if (!this.get(x, y) && (this.get(x + 1, y) || this.get(x - 1, y) || this.get(x, y + 1) || this.get(x, y - 1) ||
+          (diag && (this.get(x + 1, y + 1) || this.get(x - 1, y - 1) || this.get(x + 1, y - 1) || this.get(x - 1, y + 1))))) add.push([x, y]);
+    add.forEach(([x, y]) => this.set(x, y, c)); return this; }
+  url() { const cv = document.createElement('canvas'); cv.width = this.w; cv.height = this.h; const ctx = cv.getContext('2d');
+    this.p.forEach((col, i) => { if (col) { ctx.fillStyle = col; ctx.fillRect(i % this.w, (i / this.w) | 0, 1, 1); } });
+    return cv.toDataURL(); }
+}
+function closetArt(open) {
+  const a = new PA(56, 60), W = '#b86f50', Wd = '#733e39', Wl = '#e4a672', In = '#3e2731', Gold = '#feae34';
+  a.rect(12, 1, 32, 2, Wl); a.rect(8, 3, 40, 4, Wl); a.rect(8, 6, 40, 1, Wd);
+  a.rect(26, 0, 4, 1, Wl); a.rect(27, 1, 2, 2, '#b55088'); a.set(27, 1, '#f6757a');
+  a.rect(10, 7, 36, 45, W); a.rect(10, 7, 1, 45, Wl); a.rect(44, 7, 2, 45, Wd);
+  a.rect(9, 51, 38, 3, Wd); a.rect(11, 54, 5, 4, Wd); a.rect(40, 54, 5, 4, Wd);
+  const panel = (x, y, w, h) => { a.rect(x, y, w, h, Wd); a.rect(x + 1, y + 1, w - 2, h - 2, W); a.rect(x + 1, y + 1, w - 2, 1, Wl); a.rect(x + 1, y + 1, 1, h - 2, Wl); };
+  if (!open) {
+    a.rect(12, 9, 15, 41, W); a.rect(29, 9, 15, 41, W); a.rect(27, 9, 2, 41, Wd);
+    panel(14, 12, 11, 15); panel(14, 30, 11, 17); panel(31, 12, 11, 15); panel(31, 30, 11, 17);
+    a.rect(24, 28, 2, 2, Gold); a.rect(30, 28, 2, 2, Gold);
+  } else {
+    a.rect(12, 9, 32, 41, In); a.rect(13, 10, 30, 22, Wd);
+    a.rect(13, 12, 30, 1, '#c0cbdc');
+    const shirts = ['#e43b44', '#0099db', '#fee761', '#63c74d', '#b55088'];
+    shirts.forEach((col, i) => { const x = 15 + i * 6, r = ramp(col); a.set(x + 2, 12, '#8b9bb4');
+      a.rect(x, 13, 5, 1, r.base); a.rect(x - 1, 14, 7, 2, r.base); a.rect(x, 16, 5, 6, r.base); a.rect(x + 4, 16, 1, 6, r.shade); });
+    a.rect(12, 33, 32, 2, Wl); a.rect(12, 35, 32, 1, Wd);
+    [['#4a6a9c', '#2b3f63'], ['#d9c9a3', '#b9a77c']].forEach(([c1, c2], i) => { const x = 15 + i * 15;
+      a.rect(x, 27, 10, 2, c1); a.rect(x, 29, 10, 2, c2); a.rect(x, 31, 10, 2, c1); });
+    a.rect(16, 45, 7, 3, '#ffffff'); a.rect(16, 47, 7, 1, '#e43b44'); a.rect(33, 45, 7, 3, '#1e1e1e'); a.rect(33, 47, 7, 1, '#ffffff');
+    a.rect(1, 9, 8, 41, Wl); a.rect(2, 12, 5, 15, W); a.rect(2, 30, 5, 17, W); a.rect(7, 28, 1, 2, Gold);
+    a.rect(47, 9, 8, 41, Wl); a.rect(49, 12, 5, 15, W); a.rect(49, 30, 5, 17, W); a.rect(48, 28, 1, 2, Gold);
+  }
+  return a.outline().url();
+}
+function cloudArt() {
+  const a = new PA(48, 28);
+  [[14, 16, 10, 8], [24, 11, 11, 10], [35, 15, 10, 8], [24, 19, 19, 7]].forEach(([x, y, rx, ry]) => a.ell(x, y, rx, ry, '#ffffff'));
+  for (let y = 21; y < 28; y++) for (let x = 0; x < 48; x++) if (a.get(x, y)) a.set(x, y, '#dcdcdc');
+  return a.outline(INK, true).url();
+}
+function wandArt() {
+  const a = new PA(24, 24);
+  for (let i = 0; i < 2; i++) a.line(4 + i, 20, 14 + i, 10, '#3a4466');
+  a.line(13, 11, 15, 9, '#ffffff'); a.line(14, 11, 16, 9, '#ffffff');
+  const Y = '#fee761', O = '#feae34';
+  a.rect(18, 1, 1, 9, Y); a.rect(14, 5, 9, 1, Y); a.rect(17, 3, 3, 5, Y); a.rect(16, 4, 5, 3, Y); a.set(18, 5, O);
+  a.set(5, 3, Y); a.set(21, 15, Y); a.set(10, 6, '#f6757a');
+  return a.outline().url();
+}
+function hamperArt(level, colors) {
+  const a = new PA(32, 32), B = '#0099db', Bs = '#124e89', Bl = '#2ce8f5', Bd = '#262b44';
+  for (let y = 12; y < 29; y++) { const inset = Math.floor((y - 12) * 3 / 16); let l = 4 + inset, r = 27 - inset;
+    if (y === 28) { l++; r--; } for (let x = l; x <= r; x++) a.set(x, y, B); a.set(l, y, Bl); a.set(r, y, Bs); a.set(r - 1, y, Bs); }
+  [17, 20, 23, 26].forEach((y, i) => { const off = i % 2 ? 2 : 0;
+    for (let x0 = 7 + off; x0 < 24; x0 += 4) for (let x = x0; x < x0 + 2; x++) if (a.get(x, y) && a.get(x + 1, y)) a.set(x, y, Bs); });
+  [7, 21].forEach(x0 => { for (let x = x0; x < x0 + 4; x++) a.set(x, 14, INK); });
+  for (let x = 3; x < 29; x++) { a.set(x, 11, Bl); a.set(x, 12, B); } a.set(3, 12, Bs); a.set(28, 12, Bs); a.set(28, 11, B);
+  if (level === 0) {
+    for (let x = 4; x < 28; x++) { a.set(x, 9, Bs); a.set(x, 10, Bd); }
+    for (let x = 5; x < 27; x += 3) a.set(x, 10, Bs); a.set(4, 9, null); a.set(27, 9, null);
+  } else {
+    const lumps = [[9.5, 8.5, 5, 3.6], [22, 8, 5, 3.8], [16, 6, 4.6, 4], [14, 9.5, 4, 2.2]];
+    const n = [0, 2, 3, 4][level], dy = [0, 3, 1.5, 0][level];
+    for (let i = 0; i < n; i++) { const [cx, cy0, rx, ry] = lumps[i], cy = cy0 + dy, rp = ramp(colors[i % colors.length] || '#b4b4b4');
+      a.ell(cx, cy, rx, ry, (x, y) => { const sx = (x + .5 - cx - 1.3) / rx, sy = (y + .5 - cy - 1.1) / ry; return sx * sx + sy * sy > 1 ? rp.shade : rp.base; }, (x, y) => y < 11); }
+    if (level === 3) { const rp = ramp(colors[0] || '#4a6a9c');
+      for (let y = 11; y < 19; y++) for (const x of [5, 6, 7]) { if (y >= 17 && x === 5) continue; a.set(x, y, x === 7 ? rp.shade : rp.base); }
+      a.set(6, 18, rp.shade); a.set(7, 18, rp.shade); }
+  }
+  return a.outline().url();
+}
+function wxArt(kind) {
+  const a = new PA(16, 16), Y = '#fee761', O = '#feae34';
+  const sun = (cx, cy) => { a.ell(cx, cy, 3.6, 3.6, Y); a.ell(cx + .8, cy + .8, 2, 2, (x, y) => O, (x, y) => (x + .5 - cx) + (y + .5 - cy) > 1.5);
+    [[0, -6], [0, 6], [-6, 0], [6, 0], [-4, -4], [4, -4], [-4, 4], [4, 4]].forEach(([dx, dy]) => a.set(cx + dx - .5, cy + dy - .5, Y)); };
+  const cloud = (ox, oy, col = '#ffffff') => { [[5, 9, 3.5, 3], [9, 7, 4, 3.6], [11, 10, 3.5, 2.6], [7.5, 10.5, 5.5, 2.2]]
+    .forEach(([x, y, rx, ry]) => a.ell(x + ox, y + oy, rx, ry, col)); };
+  if (kind === 'sun') sun(8, 8);
+  if (kind === 'partly') { sun(6, 6); cloud(1, 2); }
+  if (kind === 'cloud') cloud(0, 0, '#dcdcdc');
+  if (kind === 'rain') { cloud(0, -2, '#c0cbdc'); [[4, 13], [8, 14], [12, 13]].forEach(([x, y]) => { a.set(x, y, '#0099db'); a.set(x, y + 1, '#0099db'); }); }
+  return a.outline().url();
+}
+function iconArt(kind) {
+  const a = new PA(16, 16), M = '#b55088', Y = '#fee761', B = '#0099db', G = '#8b9bb4', Wd = '#733e39';
+  if (kind === 'style') { a.line(8, 2, 8, 4, G); a.rect(7, 1, 3, 1, G); a.line(8, 5, 1, 11, Wd); a.line(8, 5, 14, 11, Wd); a.rect(1, 11, 14, 1, Wd); a.set(8, 5, Wd); }
+  if (kind === 'plan') return wandArt();
+  if (kind === 'filter') { for (let y = 2; y < 8; y++) a.rect(1 + (y - 2), y, 14 - 2 * (y - 2), 1, M); a.rect(7, 8, 2, 6, M); a.rect(1, 2, 14, 1, '#f6757a'); }
+  if (kind === 'sort') { a.rect(2, 3, 12, 2, B); a.rect(2, 7, 9, 2, B); a.rect(2, 11, 5, 2, B); }
+  if (kind === 'add') { a.rect(6, 2, 4, 12, '#63c74d'); a.rect(2, 6, 12, 4, '#63c74d'); a.rect(6, 2, 1, 12, '#a4e88f'); }
+  if (kind === 'lock' || kind === 'unlock') { a.rect(3, 7, 10, 7, Y); a.rect(3, 13, 10, 1, '#feae34'); a.rect(7, 9, 2, 3, Wd);
+    if (kind === 'lock') { a.rect(5, 3, 1, 4, G); a.rect(10, 3, 1, 4, G); a.rect(5, 2, 6, 1, G); }
+    else { a.rect(10, 3, 1, 4, G); a.rect(5, 1, 6, 1, G); a.rect(5, 1, 1, 3, G); } }
+  if (kind === 'nohat') { const g = spriteCanvas({ subtype: 'cap', primary: '#b4b4b4', pattern: 'solid', seed: 'x' }); return g.toDataURL(); }
+  return a.outline().url();
+}
+function textArt(text, color = '#b55088', hl = '#f6757a') {
+  const chars = [...text.toUpperCase()], w = chars.length * 5 + 2, a = new PA(w, 8);
+  const draw = (ox, oy, colFn) => chars.forEach((ch, i) => { const bits = FONT[ch]; if (!bits) return;
+    for (let j = 0; j < 15; j++) if (bits[j] === '1') a.set(1 + i * 5 + (j % 3) + ox, 1 + ((j / 3) | 0) + oy, colFn((j / 3) | 0)); });
+  draw(0, 1, () => INK); draw(0, 0, row => row === 0 ? hl : color);
+  return a;
+}
+function paintCanvas(canvas, art, scale) {
+  canvas.width = art.w * scale; canvas.height = art.h * scale;
+  const ctx = canvas.getContext('2d');
+  art.p.forEach((c, i) => { if (c) { ctx.fillStyle = c; ctx.fillRect((i % art.w) * scale, ((i / art.w) | 0) * scale, scale, scale); } });
+  canvas.style.width = canvas.width + 'px'; canvas.style.height = canvas.height + 'px';
+}
+
+/* ---------------- state ---------------- */
+const $ = s => document.querySelector(s);
+const state = {
+  items: [],
+  plan: [],
+  forecast: [],
+  vibe: 'campus', mood: 'mix', unit: 'F',
+  filter: new Set(CATS), showDirty: false, sort: 'recent',
+  days: [],
+  mode: API_BASE ? 'backend' : 'demo',
+};
+let uid = 0;
+function makeItem(o) {
+  const item = { id: 'i' + (++uid), added: uid, status: 'clean', warmth: 3, formality: 2, tags: [], pattern: 'solid',
+    graphic: 'none', letter: null, secondary: null, accent: null, ...o };
+  item.cat = TPL[item.subtype].cat;
+  refreshSprite(item);
+  return item;
+}
+function refreshSprite(item) {
+  item.cat = TPL[item.subtype].cat;
+  item.sprite = spriteURL({ subtype: item.subtype, primary: item.primary, secondary: item.secondary, accent: item.accent,
+    pattern: item.pattern, graphic: item.graphic, letter: item.letter, seed: item.id });
+}
+const SAMPLE = [
+  ['Cozy Navy Hoodie', 'hoodie', '#1f2a52', null, null, 'solid', 'none', null, 4, 1, ['cozy', 'campus']],
+  ['Candy Stripe Tee', 'tshirt', '#e43b44', '#ffffff', null, 'striped', 'none', null, 2, 1, ['bold', 'campus']],
+  ['Forest Flannel', 'longsleeve', '#3e8948', '#193c3e', null, 'plaid', 'none', null, 3, 3, ['cozy', 'dressy']],
+  ['Sunny Star Tee', 'tshirt', '#fee761', null, '#e43b44', 'solid', 'star', null, 2, 1, ['bold', 'sporty']],
+  ['Lilac Crewneck', 'longsleeve', '#b55088', null, null, 'solid', 'none', null, 3, 2, ['comfy', 'campus']],
+  ['Plain White Tee', 'tshirt', '#ffffff', null, null, 'solid', 'none', null, 2, 2, ['basic', 'dressy']],
+  ['Grey Zip Hoodie', 'hoodie', '#8a8a8a', null, '#1f2a52', 'solid', 'letter', 'W', 4, 1, ['comfy', 'sporty']],
+  ['Classic Jeans', 'pants', '#4a6a9c', null, null, 'denim', 'none', null, 3, 2, ['campus', 'basic']],
+  ['Khaki Chinos', 'pants', '#d9c9a3', null, null, 'solid', 'none', null, 3, 3, ['dressy']],
+  ['Black Joggers', 'pants', '#3a3a3a', null, null, 'solid', 'none', null, 3, 1, ['comfy', 'sporty']],
+  ['Olive Camp Shorts', 'shorts', '#6f7d3c', null, null, 'solid', 'none', null, 1, 1, ['sporty', 'campus']],
+  ['Red Ball Cap', 'cap', '#e43b44', '#ffffff', '#ffffff', 'solid', 'star', null, 2, 1, ['sporty', 'bold']],
+  ['Navy Fitted', 'cap', '#1f2a52', null, '#ffffff', 'solid', 'letter', 'W', 2, 2, ['campus', 'streetwear']],
+  ['White Court Kicks', 'sneakers', '#ffffff', '#e43b44', null, 'solid', 'none', null, 3, 2, ['campus', 'dressy']],
+  ['Black Runners', 'sneakers', '#1e1e1e', '#ffffff', null, 'solid', 'none', null, 3, 1, ['sporty']],
+  ['Blue Dot Boxers', 'underwear', '#0099db', '#ffffff', null, 'polka_dot', 'none', null, 3, 1, []],
+  ['Grey Boxers', 'underwear', '#8a8a8a', '#1f2a52', null, 'solid', 'none', null, 3, 1, []],
+  ['Red Check Boxers', 'underwear', '#e43b44', '#ffffff', null, 'checkered', 'none', null, 3, 1, []],
+  ['Navy Boxers', 'underwear', '#1f2a52', '#c0cbdc', null, 'solid', 'none', null, 3, 1, []],
+  ['White Crew Socks', 'socks', '#ffffff', '#c0cbdc', null, 'solid', 'none', null, 3, 1, []],
+  ['Stripe Socks', 'socks', '#f6757a', '#ffffff', null, 'striped', 'none', null, 3, 1, ['bold']],
+  ['Black Socks', 'socks', '#262b44', '#5a6988', null, 'solid', 'none', null, 3, 2, []],
+  ['Mustard Socks', 'socks', '#feae34', '#733e39', null, 'solid', 'none', null, 3, 1, ['bold']],
+];
+const sampleItem = ([name, subtype, primary, secondary, accent, pattern, graphic, letter, warmth, formality, tags], extra = {}) =>
+  makeItem({ name, subtype, primary, secondary, accent, pattern, graphic, letter, warmth, formality, tags, src: 'sample', ...extra });
+
+/* ---------------- week + forecast ---------------- */
+function setupWeek() {
+  const now = new Date(), monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7)); monday.setHours(0, 0, 0, 0);
+  state.days = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
+  state.today = (now.getDay() + 6) % 7;
+  state.forecast = getForecast(state.days);
+  state.plan = state.days.map((d, i) => ({ hat: null, top: null, bottom: null, underwear: null, socks: null, shoes: null,
+    hatOn: state.forecast[i].cond === 'sun' || state.forecast[i].hi < 50, locked: false }));
+  const fmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+  $('#week-label').textContent = `Week of ${fmt.format(monday)}`;
+}
+// Swap this for a real weather API call.
+function getForecast(days) {
+  const conds = ['sun', 'partly', 'cloud', 'rain', 'partly', 'sun', 'cloud'], his = [64, 58, 51, 46, 55, 67, 60];
+  return days.map((d, i) => ({ cond: conds[i], hi: his[i], lo: his[i] - 12 }));
+}
+const COND_LABEL = { sun: 'Sunny', partly: 'Partly cloudy', cloud: 'Cloudy', rain: 'Rain' };
+const temp = f => state.unit === 'F' ? `${f}°` : `${Math.round((f - 32) * 5 / 9)}°`;
+
+/* ---------------- planner ---------------- */
+const VIBES = { comfy: { label: 'Comfy', tags: ['cozy', 'comfy', 'lounge'] }, campus: { label: 'Campus', tags: ['campus', 'streetwear', 'basic'] },
+  sporty: { label: 'Sporty', tags: ['sporty', 'athletic'] }, dressy: { label: 'Dressed up', tags: ['dressy'] } };
+const targetWarmth = t => t < 45 ? 5 : t < 54 ? 4 : t < 64 ? 3 : t < 74 ? 2 : 1;
+const byId = id => state.items.find(i => i.id === id);
+const clean = cat => state.items.filter(i => i.cat === cat && i.status === 'clean');
+
+function scoreItem(item, day, used) {
+  const f = state.forecast[day], tw = targetWarmth(f.hi), vibe = VIBES[state.vibe];
+  let s = Math.random() * .6;
+  if (item.cat === 'top') s -= Math.abs(item.warmth - tw) * 1.6;
+  if (item.cat === 'bottom') { s -= Math.abs(item.warmth - Math.min(tw, 3)) * 1.2; if (f.hi >= 74 && item.subtype === 'shorts') s += 2; if (f.hi < 60 && item.subtype === 'shorts') s -= 4; }
+  s += item.tags.filter(t => vibe.tags.includes(t)).length * 1.2;
+  if (state.vibe === 'dressy') s += (item.formality - 2) * .8;
+  const sat = hsv(item.primary)[1];
+  if (state.mood === 'bold') s += sat * 1.5; if (state.mood === 'calm') s -= sat * 1.5;
+  const n = used.get(item.id) || 0;
+  s -= n * (['underwear', 'socks'].includes(item.cat) ? 6 : 2.5);
+  return s;
+}
+function planWeek({ only } = {}) {
+  const used = new Map();
+  const count = id => id && used.set(id, (used.get(id) || 0) + 1);
+  state.plan.forEach((p, d) => { if (p.locked || (only && !only.has(d))) CATS.forEach(c => count(p[c])); });
+  state.plan.forEach((p, d) => {
+    if (p.locked || (only && !only.has(d))) return;
+    CATS.forEach(cat => {
+      if (cat === 'hat' && !p.hatOn) { p.hat = null; return; }
+      const pool = clean(cat);
+      if (!pool.length) { p[cat] = null; return; }
+      const best = pool.map(it => [scoreItem(it, d, used), it]).sort((a, b) => b[0] - a[0])[0][1];
+      p[cat] = best.id; count(best.id);
+    });
+  });
+}
+function refillSlots(removedId) {
+  const used = new Map();
+  state.plan.forEach(p => CATS.forEach(c => p[c] && used.set(p[c], (used.get(p[c]) || 0) + 1)));
+  const changed = [];
+  state.plan.forEach((p, d) => CATS.forEach(cat => {
+    if (p[cat] !== removedId) return;
+    p[cat] = null;
+    const pool = clean(cat);
+    if (pool.length) { const best = pool.map(it => [scoreItem(it, d, used), it]).sort((a, b) => b[0] - a[0])[0][1];
+      p[cat] = best.id; used.set(best.id, (used.get(best.id) || 0) + 1); }
+    changed.push(d);
+  }));
+  return changed;
+}
+const plannedCount = id => state.plan.reduce((n, p) => n + CATS.filter(c => p[c] === id).length, 0);
+
+/* ---------------- rendering ---------------- */
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const LONG_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const ART = {};
+let fresh = new Set();
+
+function renderBoard() {
+  const b = $('#board'); b.innerHTML = '';
+  b.appendChild(document.createElement('div'));
+  state.days.forEach((d, i) => {
+    const f = state.forecast[i], p = state.plan[i];
+    const h = document.createElement('div');
+    h.className = 'dayhead px' + (i === state.today ? ' today' : '');
+    h.innerHTML = `<span class="name">${DAY_NAMES[i]}</span><span class="date">${d.getDate()}</span>
+      <span class="wx"><img class="px-img" src="${ART.wx[f.cond]}" alt="${COND_LABEL[f.cond]}">${temp(f.hi)}</span>
+      <button class="lock" aria-pressed="${p.locked}" aria-label="${p.locked ? 'Unlock' : 'Lock'} ${LONG_DAYS[i]}'s outfit"
+        title="${p.locked ? 'Locked: Plan week won’t change this day' : 'Lock this outfit'}">
+        <img class="px-img" src="${p.locked ? ART.lock : ART.unlock}" alt=""></button>`;
+    h.querySelector('.lock').onclick = () => { p.locked = !p.locked; renderBoard(); toast(p.locked ? `Locked ${LONG_DAYS[i]}.` : `Unlocked ${LONG_DAYS[i]}.`); };
+    b.appendChild(h);
+  });
+  CATS.forEach(cat => {
+    const rh = document.createElement('div'); rh.className = 'rowhead';
+    rh.innerHTML = `<img class="px-img" src="${ART.cat[cat]}" alt="">${CAT_LABEL[cat]}`;
+    b.appendChild(rh);
+    state.plan.forEach((p, d) => {
+      const el = document.createElement('div');
+      el.dataset.drop = 'slot'; el.dataset.day = d; el.dataset.cat = cat;
+      if (cat === 'hat' && !p.hatOn) {
+        el.className = 'slot nohat'; el.tabIndex = 0; el.setAttribute('role', 'button');
+        el.setAttribute('aria-label', `No hat on ${LONG_DAYS[d]}. Add a hat`);
+        el.innerHTML = `<img class="px-img" src="${ART.nohat}" alt=""><span>No hat</span>`;
+        const on = () => { p.hatOn = true; planWeek({ only: new Set([d]) }); fresh.add(`${d}:hat`); renderAll(); };
+        el.onclick = on; el.onkeydown = e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), on());
+      } else if (p[cat]) {
+        const it = byId(p[cat]);
+        el.className = 'slot px' + (fresh.has(`${d}:${cat}`) ? ' fresh' : '');
+        el.tabIndex = 0; el.setAttribute('role', 'button');
+        el.setAttribute('aria-label', `${it.name}, ${LONG_DAYS[d]} ${CAT_LABEL[cat].toLowerCase()}. Drag to move or to the hamper`);
+        el.innerHTML = `<img class="px-img" src="${it.sprite}" alt="">` +
+          (cat === 'hat' ? `<button class="x" aria-label="No hat on ${LONG_DAYS[d]}" title="No hat">×</button>` : '');
+        el.title = it.name;
+        draggable(el, it.id, { type: 'slot', day: d, cat });
+        el.onkeydown = e => (e.key === 'Enter') && openSheet(it.id);
+        const x = el.querySelector('.x');
+        if (x) { x.onpointerdown = e => e.stopPropagation(); x.onclick = e => { e.stopPropagation(); p.hatOn = false; p.hat = null; renderAll(); }; }
+      } else {
+        el.className = 'slot empty';
+        el.innerHTML = '<span class="plus">+</span>';
+        el.title = clean(cat).length ? `Drag ${CAT_PLURAL[cat]} here` : `Add ${CAT_PLURAL[cat]} to fill this row`;
+      }
+      b.appendChild(el);
+    });
+  });
+  fresh = new Set();
+}
+function sortedItems() {
+  const items = state.items.filter(i => state.filter.has(i.cat) && (state.showDirty || i.status === 'clean'));
+  const by = {
+    recent: (a, b) => b.added - a.added,
+    color: (a, b) => { const [ha, sa, va] = hsv(a.primary), [hb, sb, vb] = hsv(b.primary);
+      const ka = sa < .15 ? 2 + va : ha, kb = sb < .15 ? 2 + vb : hb; return ka - kb; },
+    warmth: (a, b) => b.warmth - a.warmth || a.name.localeCompare(b.name),
+    name: (a, b) => a.name.localeCompare(b.name),
+    planned: (a, b) => plannedCount(b.id) - plannedCount(a.id) || a.name.localeCompare(b.name),
+    type: (a, b) => CATS.indexOf(a.cat) - CATS.indexOf(b.cat) || a.name.localeCompare(b.name),
+  }[state.sort];
+  return items.sort(by);
+}
+function renderCloset() {
+  const grid = $('#closet-grid'); grid.innerHTML = '';
+  const items = sortedItems();
+  const cleanCount = state.items.filter(i => i.status === 'clean').length;
+  $('#closet-count').textContent = `${cleanCount} clean`;
+  const note = $('#closet-filter-note');
+  if (state.filter.size < CATS.length) { note.hidden = false;
+    note.textContent = state.filter.size ? `Showing ${[...state.filter].map(c => CAT_PLURAL[c]).join(', ')}` : 'All types are hidden. Turn some on in Filter.'; }
+  else note.hidden = true;
+  if (!items.length && state.filter.size) {
+    const p = document.createElement('p'); p.className = 'empty-note';
+    p.textContent = state.items.length ? 'Nothing clean here. Wash the hamper or change the filter.' : 'Your closet is empty. Use Add clothes to upload photos.';
+    grid.appendChild(p);
+  }
+  items.forEach(it => {
+    const t = document.createElement('div');
+    t.className = 'tile px' + (it.status === 'laundry' ? ' dirty' : '');
+    t.tabIndex = 0; t.setAttribute('role', 'button');
+    t.setAttribute('aria-label', `${it.name}. Press Enter for details. Drag onto a day or into the hamper`);
+    t.title = it.name;
+    const n = plannedCount(it.id);
+    t.innerHTML = `<img class="px-img" src="${it.sprite}" alt="">` + (it.guessed ? '<span class="badge" title="Type was guessed">?</span>' : '') +
+      (n ? `<span class="worn">${n}×</span>` : '');
+    if (it.status === 'clean') draggable(t, it.id, { type: 'closet' });
+    else t.onclick = () => openSheet(it.id);
+    t.onkeydown = e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), openSheet(it.id));
+    grid.appendChild(t);
+  });
+}
+function renderHamper() {
+  const dirty = state.items.filter(i => i.status === 'laundry');
+  const level = dirty.length === 0 ? 0 : dirty.length <= 2 ? 1 : dirty.length <= 5 ? 2 : 3;
+  $('#hamper-img').src = hamperArt(level, dirty.slice(-4).reverse().map(i => i.primary));
+  $('#hamper-count').textContent = dirty.length ? `${dirty.length} item${dirty.length > 1 ? 's' : ''} to wash` : 'Empty. Drag clothes here when they’re dirty.';
+  $('#wash-btn').hidden = !dirty.length;
+}
+function renderNotes() {
+  const notes = [];
+  ['underwear', 'socks'].forEach(cat => {
+    const n = clean(cat).length, label = cat === 'underwear' ? 'pairs of underwear' : 'pairs of socks';
+    if (n === 0) notes.push(`No clean ${CAT_PLURAL[cat]}. Wash the hamper or add some.`);
+    else if (n < 7) notes.push(`You have ${n} clean ${label} for 7 days. Do laundry by ${LONG_DAYS[n - 1]}.`);
+  });
+  CATS.forEach(cat => { if (cat !== 'hat' && !state.items.some(i => i.cat === cat)) notes.push(`Add ${CAT_PLURAL[cat]} to fill the ${CAT_LABEL[cat].toLowerCase()} row.`); });
+  state.plan.forEach((p, d) => { const t = p.top && byId(p.top), f = state.forecast[d];
+    if (t && f.hi < 50 && t.warmth < 3) notes.push(`${LONG_DAYS[d]} looks cold for ${t.name}. A hoodie would be warmer.`); });
+  const box = $('#notes');
+  box.innerHTML = notes.length ? notes.slice(0, 4).map(n => `<p>${n}</p>`).join('')
+    : `<p class="tip">Everything’s planned. Drag clothes between days, or into the hamper when they’re dirty.</p>`;
+}
+function renderAll() { renderBoard(); renderCloset(); renderHamper(); renderNotes(); }
+
+/* ---------------- drag and drop (pointer-based, works for mouse + touch) ---------------- */
+function draggable(el, itemId, from) {
+  el.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    const sx = e.clientX, sy = e.clientY; let ghost = null;
+    el.setPointerCapture(e.pointerId);
+    const move = ev => {
+      if (!ghost && Math.hypot(ev.clientX - sx, ev.clientY - sy) > 6) {
+        ghost = document.createElement('img'); ghost.className = 'ghost px-img'; ghost.src = byId(itemId).sprite;
+        document.body.appendChild(ghost); document.body.classList.add('dragging'); closePanel();
+      }
+      if (ghost) { ghost.style.transform = `translate(${ev.clientX - 40}px, ${ev.clientY - 40}px)`; hover(ev.clientX, ev.clientY, itemId, from); }
+    };
+    const up = ev => {
+      el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
+      if (ghost) { ghost.remove(); document.body.classList.remove('dragging');
+        const t = targetAt(ev.clientX, ev.clientY); clearHover(); if (ev.type === 'pointerup') drop(itemId, from, t); }
+      else if (ev.type === 'pointerup') openSheet(itemId);
+    };
+    el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  });
+}
+const targetAt = (x, y) => document.elementFromPoint(x, y)?.closest('[data-drop]');
+let hovered = null;
+function canDrop(t, item, from) {
+  if (!t) return null;
+  if (t.dataset.drop === 'hamper') return true;
+  if (t.dataset.drop === 'closet') return from.type === 'slot' || from.type === 'hamper';
+  if (t.dataset.drop === 'slot') return item.status === 'clean' && t.dataset.cat === item.cat;
+  return null;
+}
+function hover(x, y, id, from) {
+  const t = targetAt(x, y);
+  if (hovered && hovered !== t) hovered.classList.remove('drop-ok', 'drop-no');
+  hovered = t;
+  const ok = canDrop(t, byId(id), from);
+  if (t && ok !== null) { t.classList.toggle('drop-ok', ok); t.classList.toggle('drop-no', !ok); }
+}
+function clearHover() { document.querySelectorAll('.drop-ok,.drop-no').forEach(e => e.classList.remove('drop-ok', 'drop-no')); hovered = null; }
+function drop(id, from, t) {
+  const item = byId(id);
+  const ok = canDrop(t, item, from);
+  if (!t || ok === null) return;
+  if (!ok) { toast(t.dataset.drop === 'slot' ? `${item.name} goes in the ${CAT_LABEL[item.cat].toLowerCase()} row.` : 'Can’t drop that there.'); return; }
+  if (t.dataset.drop === 'hamper') return sendToLaundry(id);
+  if (t.dataset.drop === 'closet') {
+    if (from.type === 'hamper') return wash([id]);
+    state.plan[from.day][from.cat] = null; if (from.cat === 'hat') state.plan[from.day].hatOn = false;
+    renderAll(); return toast(`Took ${item.name} off ${LONG_DAYS[from.day]}.`);
+  }
+  const d = +t.dataset.day, cat = t.dataset.cat, p = state.plan[d];
+  if (from.type === 'slot') { const prev = p[cat]; state.plan[from.day][from.cat] = prev; if (from.cat === 'hat' && !prev) state.plan[from.day].hatOn = false; }
+  p[cat] = id; if (cat === 'hat') p.hatOn = true;
+  fresh.add(`${d}:${cat}`); renderAll();
+  toast(`${item.name} is set for ${LONG_DAYS[d]}.`);
+}
+function sendToLaundry(id) {
+  const item = byId(id); item.status = 'laundry';
+  const changed = refillSlots(id);
+  changed.forEach(d => CATS.forEach(c => fresh.add(`${d}:${c}`)));
+  renderAll();
+  const h = $('#hamper-drop'); h.classList.remove('bounce'); void h.offsetWidth; h.classList.add('bounce');
+  toast(changed.length ? `${item.name} went in the hamper. Swapped it on ${changed.map(d => DAY_NAMES[d]).join(', ')}.` : `${item.name} went in the hamper.`);
+}
+function wash(ids) {
+  ids.forEach(id => byId(id).status = 'clean');
+  renderAll(); toast(`Washed ${ids.length} item${ids.length > 1 ? 's' : ''}.`);
+}
+
+/* ---------------- item sheet + hamper dialog ---------------- */
+function openSheet(id) {
+  const it = byId(id), dlg = $('#sheet');
+  dlg.innerHTML = `
+    <div class="sheet-top"><img class="px-img" src="${it.sprite}" alt="">
+      <div><h2 style="margin:0;font-size:20px">${esc(it.name)}</h2>
+      <div class="sub">${SUBTYPE_LABEL[it.subtype]}${it.status === 'laundry' ? ', in the hamper' : ''}</div>
+      ${it.photo ? `<img class="photo-thumb px" src="${it.photo}" alt="Original photo" style="margin-top:8px">` : ''}</div></div>
+    ${it.guessed ? '<p class="guess">The type was guessed in demo mode. Pick the right one below.</p>' : ''}
+    <label class="field">Name<input id="f-name" value="${esc(it.name)}"></label>
+    <label class="field">Type<select id="f-type">${SUBTYPES.map(s => `<option value="${s}" ${s === it.subtype ? 'selected' : ''}>${SUBTYPE_LABEL[s]}</option>`).join('')}</select></label>
+    <label class="field">Main color<input id="f-color" type="color" value="${nearest(it.primary)}"></label>
+    ${it.status === 'clean' ? `<label class="field">Wear on<select id="f-day"><option value="">Pick a day</option>${LONG_DAYS.map((d, i) => `<option value="${i}">${d}</option>`).join('')}</select></label>` : ''}
+    <div class="sheet-actions">
+      <button class="btn px magic" id="f-save">Save changes</button>
+      ${it.status === 'clean' ? '<button class="btn px" id="f-dirty">Send to hamper</button>' : '<button class="btn px" id="f-wash">Wash</button>'}
+      <button class="btn px" id="f-close">Close</button>
+    </div>`;
+  dlg.showModal();
+  $('#f-close').onclick = () => dlg.close();
+  $('#f-save').onclick = () => {
+    const oldCat = it.cat;
+    it.name = $('#f-name').value.trim() || it.name; it.subtype = $('#f-type').value; it.primary = $('#f-color').value;
+    if (TPL[it.subtype].cat !== oldCat) { state.plan.forEach(p => { if (p[oldCat] === it.id) p[oldCat] = null; }); }
+    it.guessed = false; refreshSprite(it);
+    const day = $('#f-day')?.value;
+    if (day !== '' && day !== undefined) { const p = state.plan[+day]; p[it.cat] = it.id; if (it.cat === 'hat') p.hatOn = true; fresh.add(`${day}:${it.cat}`); }
+    dlg.close(); renderAll(); toast(`Saved ${it.name}.`);
+  };
+  const dirty = $('#f-dirty'); if (dirty) dirty.onclick = () => { dlg.close(); sendToLaundry(it.id); };
+  const w = $('#f-wash'); if (w) w.onclick = () => { dlg.close(); wash([it.id]); };
+}
+function openHamper() {
+  const dirty = state.items.filter(i => i.status === 'laundry'), dlg = $('#hamper-dialog');
+  dlg.innerHTML = `<h2 style="margin:0;font-size:20px">In the hamper</h2>
+    <p class="sub" style="margin:6px 0 0">${dirty.length ? 'Drag an item out onto the closet to wash just that one.' : 'Nothing to wash.'}</p>
+    <div class="list">${dirty.map(i => `<div class="tile px" data-id="${i.id}" title="${esc(i.name)}"><img class="px-img" src="${i.sprite}" alt="${esc(i.name)}"></div>`).join('')}</div>
+    <div class="sheet-actions">${dirty.length ? '<button class="btn px magic" id="h-wash">Wash all</button>' : ''}<button class="btn px" id="h-close">Close</button></div>`;
+  dlg.showModal();
+  dlg.querySelectorAll('.tile').forEach(t => {
+    const id = t.dataset.id;
+    t.addEventListener('pointerdown', () => setTimeout(() => dlg.close(), 0), { once: true });
+    draggable(t, id, { type: 'hamper' });
+  });
+  $('#h-close').onclick = () => dlg.close();
+  const hw = $('#h-wash'); if (hw) hw.onclick = () => { dlg.close(); wash(dirty.map(i => i.id)); };
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------------- tool rail ---------------- */
+let openTool = null;
+function closePanel() { $('#tool-panel').classList.remove('on'); document.querySelectorAll('.tool[aria-expanded]').forEach(b => b.setAttribute('aria-expanded', 'false')); openTool = null; }
+function showPanel(tool) {
+  const panel = $('#tool-panel');
+  if (openTool === tool) return closePanel();
+  closePanel(); openTool = tool;
+  document.querySelector(`.tool[data-tool="${tool}"]`).setAttribute('aria-expanded', 'true');
+  const close = '<button class="btn px close" aria-label="Close">×</button>';
+  if (tool === 'weather') {
+    panel.innerHTML = `${close}<h2>Weather</h2>
+      <div class="seg" role="group" aria-label="Units"><button class="btn px" data-u="F" aria-pressed="${state.unit === 'F'}">°F</button><button class="btn px" data-u="C" aria-pressed="${state.unit === 'C'}">°C</button></div>
+      ${state.forecast.map((f, i) => `<div class="wxrow"><strong>${DAY_NAMES[i]}</strong><img class="px-img" src="${ART.wx[f.cond]}" alt="">
+        <span>${COND_LABEL[f.cond]}</span><span>${temp(f.hi)} / ${temp(f.lo)}</span></div>`).join('')}
+      <button class="btn px magic" id="wx-plan" style="margin-top:12px">Plan for this weather</button>
+      <p class="fine">Sample forecast. Connect a weather API in getForecast().</p>`;
+    panel.querySelectorAll('[data-u]').forEach(b => b.onclick = () => { state.unit = b.dataset.u; renderBoard(); openTool = null; showPanel('weather'); });
+    $('#wx-plan').onclick = () => replan('Planned for the weather.');
+  }
+  if (tool === 'style') {
+    panel.innerHTML = `${close}<h2>Style</h2>
+      <fieldset style="border:0;padding:0;margin:0"><legend class="sub">Vibe for the week</legend>
+      ${Object.entries(VIBES).map(([k, v]) => `<label class="opt"><input type="radio" name="vibe" value="${k}" ${state.vibe === k ? 'checked' : ''}>${v.label}</label>`).join('')}</fieldset>
+      <fieldset style="border:0;padding:0;margin:10px 0 0"><legend class="sub">Colors</legend>
+      ${[['calm', 'Calm and neutral'], ['mix', 'A bit of both'], ['bold', 'Bright and bold']].map(([k, l]) => `<label class="opt"><input type="radio" name="mood" value="${k}" ${state.mood === k ? 'checked' : ''}>${l}</label>`).join('')}</fieldset>
+      <button class="btn px magic" id="st-plan" style="margin-top:12px">Plan with this style</button>`;
+    panel.querySelectorAll('input[name=vibe]').forEach(r => r.onchange = () => state.vibe = r.value);
+    panel.querySelectorAll('input[name=mood]').forEach(r => r.onchange = () => state.mood = r.value);
+    $('#st-plan').onclick = () => replan(`Planned a ${VIBES[state.vibe].label.toLowerCase()} week.`);
+  }
+  if (tool === 'filter') {
+    panel.innerHTML = `${close}<h2>Filter closet</h2>
+      ${CATS.map(c => `<label class="opt"><input type="checkbox" value="${c}" ${state.filter.has(c) ? 'checked' : ''}>${CAT_LABEL[c] === 'Undies' ? 'Underwear' : CAT_PLURAL[c][0].toUpperCase() + CAT_PLURAL[c].slice(1)}</label>`).join('')}
+      <label class="opt" style="margin-top:8px"><input type="checkbox" id="fl-dirty" ${state.showDirty ? 'checked' : ''}>Show clothes in the hamper</label>
+      <button class="btn px" id="fl-all" style="margin-top:8px">Show everything</button>`;
+    panel.querySelectorAll('input[value]').forEach(cb => cb.onchange = () => { cb.checked ? state.filter.add(cb.value) : state.filter.delete(cb.value); renderCloset(); });
+    $('#fl-dirty').onchange = e => { state.showDirty = e.target.checked; renderCloset(); };
+    $('#fl-all').onclick = () => { state.filter = new Set(CATS); state.showDirty = false; renderCloset(); openTool = null; showPanel('filter'); };
+  }
+  if (tool === 'sort') {
+    panel.innerHTML = `${close}<h2>Sort closet</h2>
+      ${[['recent', 'Recently added'], ['type', 'Clothing type'], ['color', 'Color'], ['warmth', 'Warmest first'], ['planned', 'Most planned this week'], ['name', 'Name']]
+        .map(([k, l]) => `<label class="opt"><input type="radio" name="sort" value="${k}" ${state.sort === k ? 'checked' : ''}>${l}</label>`).join('')}`;
+    panel.querySelectorAll('input[name=sort]').forEach(r => r.onchange = () => { state.sort = r.value; renderCloset(); });
+  }
+  panel.querySelector('.close').onclick = closePanel;
+  panel.classList.add('on');
+  panel.querySelector('input, button:not(.close)')?.focus();
+}
+function replan(msg) {
+  planWeek(); state.plan.forEach((p, d) => CATS.forEach(c => fresh.add(`${d}:${c}`)));
+  renderAll(); toast(msg); burst(document.querySelector('.tool[data-tool="plan"]'), 10);
+}
+document.querySelectorAll('.tool').forEach(b => b.onclick = () => {
+  const t = b.dataset.tool;
+  if (t === 'plan') return replan('Week planned.');
+  if (t === 'add') { closePanel(); return $('#file').click(); }
+  showPanel(t);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && openTool) closePanel(); });
+
+/* ---------------- uploads ---------------- */
+const GUESS_ORDER = ['tshirt', 'pants', 'hoodie', 'sneakers', 'longsleeve', 'shorts', 'cap'];
+let guessIdx = 0;
+function loadImg(file) {
+  return new Promise((res, rej) => { const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => res({ img, url }); img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('unreadable')); }; img.src = url; });
+}
+function dominantColors(img) {
+  const n = 48, c = document.createElement('canvas'); c.width = c.height = n;
+  const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(img, 0, 0, n, n);
+  const d = ctx.getImageData(0, 0, n, n).data, px = [], border = [];
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const i = (y * n + x) * 4, p = [d[i], d[i + 1], d[i + 2]];
+    if (x < 3 || y < 3 || x >= n - 3 || y >= n - 3) border.push(p); else px.push(p); }
+  const bg = [0, 1, 2].map(k => border.reduce((s, p) => s + p[k], 0) / border.length);
+  const fg = px.filter(p => Math.hypot(p[0] - bg[0], p[1] - bg[1], p[2] - bg[2]) > 45);
+  const pts = fg.length > 40 ? fg : px;
+  let cent = [pts[0], pts[(pts.length / 2) | 0], pts[pts.length - 1]].map(p => [...p]);
+  for (let it = 0; it < 10; it++) {
+    const sums = cent.map(() => [0, 0, 0, 0]);
+    pts.forEach(p => { let bi = 0, bd = 1e9; cent.forEach((c, i) => { const dd = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2; if (dd < bd) { bd = dd; bi = i; } });
+      const s = sums[bi]; s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3]++; });
+    cent = sums.map((s, i) => s[3] ? [s[0] / s[3], s[1] / s[3], s[2] / s[3], s[3]] : [...cent[i].slice(0, 3), 0]);
+  }
+  cent.sort((a, b) => b[3] - a[3]);
+  const out = [cent[0]];
+  cent.slice(1).forEach(c => { if (c[3] / pts.length > .15 && out.every(o => Math.hypot(o[0] - c[0], o[1] - c[1], o[2] - c[2]) > 50)) out.push(c); });
+  return out.map(c => rgbToHex(c.slice(0, 3)));
+}
+async function processFile(file) {
+  if (API_BASE) {
+    const fd = new FormData(); fd.append('file', file);
+    const r = await fetch(`${API_BASE.replace(/\/$/, '')}/sprites`, { method: 'POST', body: fd });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `server said ${r.status}`);
+    const j = await r.json();
+    return makeItem({ name: j.name, subtype: TPL[j.subtype] ? j.subtype : 'tshirt', primary: j.colors.primary, secondary: j.colors.secondary,
+      accent: j.colors.accent, pattern: j.pattern, graphic: j.graphic, letter: j.graphic_letter, warmth: j.warmth,
+      formality: j.formality, tags: j.vibe_tags || [], src: 'upload', photo: j.cutout_png });
+  }
+  const { img, url } = await loadImg(file);
+  const [primary, secondary] = dominantColors(img);
+  const subtype = GUESS_ORDER[guessIdx++ % GUESS_ORDER.length];
+  let base = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, 24);
+  base = base.charAt(0).toUpperCase() + base.slice(1);
+  return makeItem({ name: base || SUBTYPE_LABEL[subtype], subtype, primary, secondary: secondary || null,
+    warmth: { tshirt: 2, shorts: 1, hoodie: 4 }[subtype] || 3, src: 'upload', photo: url, guessed: true, tags: ['campus'] });
+}
+async function runUploads(files, { fromIntro } = {}) {
+  files = [...files].filter(f => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name));
+  if (!files.length) return toast('Pick image files: JPG, PNG, WEBP or HEIC.');
+  const loader = $('#loader'); loader.classList.add('on');
+  const sparkTimer = setInterval(() => burst($('#wand-img'), 3), 450);
+  const added = [], failed = [];
+  for (let i = 0; i < files.length; i++) {
+    $('#loader-count').textContent = `${i + 1} of ${files.length}`;
+    try { added.push(await processFile(files[i])); } catch (e) { failed.push(files[i].name); }
+    if (!API_BASE) await wait(380);
+  }
+  clearInterval(sparkTimer);
+  state.items.push(...added);
+  CATS.filter(c => c !== 'hat').forEach(cat => {   // fill gaps so the week board isn't empty
+    if (!state.items.some(i => i.cat === cat)) SAMPLE.filter(s => TPL[s[1]].cat === cat).slice(0, 4).forEach(s => state.items.push(sampleItem(s)));
+  });
+  loader.classList.remove('on');
+  if (fromIntro) enterApp(); else { planWeek({ only: emptyDays() }); renderAll(); }
+  const parts = [];
+  if (added.length) parts.push(`Added ${added.length} item${added.length > 1 ? 's' : ''}.`);
+  if (failed.length) parts.push(`Couldn’t read ${failed.join(', ')}. Try JPG or PNG.`);
+  if (!API_BASE && added.length) parts.push('Tap any “?” item to fix its type.');
+  toast(parts.join(' '), 5000);
+}
+const emptyDays = () => new Set(state.plan.map((p, d) => CATS.some(c => !p[c] && (c !== 'hat' || p.hatOn)) ? d : -1).filter(d => d >= 0));
+$('#file').onchange = e => { const files = e.target.files; const intro = !$('#app').classList.contains('on');
+  if (intro) introUpload(files); else runUploads(files); e.target.value = ''; };
+
+/* ---------------- intro flow ---------------- */
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let closetOpen = false;
+$('#closet-btn').onclick = () => {
+  if (closetOpen) return $('#file').click();
+  closetOpen = true;
+  const btn = $('#closet-btn');
+  btn.classList.add('shake'); $('#closet-img').src = ART.closetOpen; burst(btn, 14);
+  btn.setAttribute('aria-label', 'Upload photos of your clothes');
+  setTimeout(() => {
+    const cloud = $('#cloud'), demo = $('#demo-link');
+    cloud.classList.add('show'); demo.classList.add('show');
+    [cloud, demo].forEach(el => { el.tabIndex = 0; el.removeAttribute('aria-hidden'); });
+    cloud.setAttribute('aria-label', 'Upload photos of your clothes');
+    $('#hint').textContent = 'Add photos of your clothes, one item per photo';
+    cloud.focus();
+  }, reduced ? 0 : 320);
+};
+$('#cloud').onclick = () => $('#file').click();
+['dragenter', 'dragover'].forEach(ev => $('#cloud').addEventListener(ev, e => { e.preventDefault(); $('#cloud').classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => $('#cloud').addEventListener(ev, e => { e.preventDefault(); $('#cloud').classList.remove('over'); }));
+$('#cloud').addEventListener('drop', e => introUpload(e.dataTransfer.files));
+$('#demo-link').onclick = async () => { await poof(); SAMPLE.forEach(s => state.items.push(sampleItem(s))); await wandMoment(900); enterApp(); };
+
+async function introUpload(files) {
+  const imgs = [...files].filter(f => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name));
+  if (!imgs.length) return toast('Pick image files: JPG, PNG, WEBP or HEIC.');
+  if (!reduced) {
+    const cr = $('#cloud').getBoundingClientRect(), cx = cr.left + cr.width / 2, cy = cr.top + cr.height / 2;
+    const flights = imgs.slice(0, 10).map((f, i) => {
+      const el = document.createElement('img'); el.className = 'fly px-img';
+      el.src = URL.createObjectURL(f); el.onerror = () => { el.removeAttribute('src'); };
+      const ang = (i / Math.min(imgs.length, 10)) * Math.PI * 2, r = 260;
+      const sx = cx + Math.cos(ang) * r - 32, sy = cy + Math.sin(ang) * r * .7 + 120 - 32;
+      document.body.appendChild(el);
+      return el.animate([{ transform: `translate(${sx}px, ${sy}px) scale(1)`, opacity: 1 },
+        { transform: `translate(${cx - 32}px, ${cy - 32}px) scale(.15)`, opacity: .2 }],
+        { duration: 700, delay: i * 90, easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }).finished.then(() => el.remove());
+    });
+    await Promise.all(flights);
+    $('#cloud').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.18, .86)' }, { transform: 'scale(.94, 1.08)' }, { transform: 'scale(1)' }], { duration: 380 });
+    puffs($('#cloud'), 8, 90); await wait(420);
+  }
+  await poof();
+  await runUploads(imgs, { fromIntro: true });
+}
+async function poof() {
+  const cloud = $('#cloud');
+  if (!reduced) { puffs(cloud, 16, 180);
+    await cloud.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.3)', opacity: 0 }], { duration: 320, fill: 'forwards' }).finished; }
+  cloud.style.visibility = 'hidden';
+}
+async function wandMoment(ms) {
+  $('#loader-count').textContent = ''; $('#loader-title').textContent = 'Setting up your closet';
+  $('#loader').classList.add('on'); const t = setInterval(() => burst($('#wand-img'), 3), 300);
+  await wait(reduced ? 200 : ms); clearInterval(t); $('#loader').classList.remove('on');
+  $('#loader-title').textContent = 'Turning photos into pixels';
+}
+function enterApp() {
+  $('#intro').classList.add('gone');
+  setTimeout(() => $('#intro').remove(), 600);
+  const app = $('#app'); app.classList.add('on'); requestAnimationFrame(() => app.classList.add('show'));
+  $('#mode-pill').textContent = API_BASE ? 'Connected to sprite server' : 'Demo mode: types are guessed';
+  if (!state.items.some(i => i.cat === 'hat')) state.plan.forEach(p => p.hatOn = false);
+  planWeek(); renderAll();
+}
+function puffs(el, n, spread) {
+  if (reduced) return;
+  const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('div'); p.className = 'puff'; document.body.appendChild(p);
+    const a = Math.random() * Math.PI * 2, d = spread * (.5 + Math.random() * .7), s = .6 + Math.random() * .9;
+    p.animate([{ transform: `translate(${cx - 9}px, ${cy - 9}px) scale(${s})`, opacity: 1 },
+      { transform: `translate(${cx - 9 + Math.cos(a) * d}px, ${cy - 9 + Math.sin(a) * d * .7}px) scale(${s * .3})`, opacity: 0 }],
+      { duration: 520 + Math.random() * 200, easing: 'steps(6)' }).finished.then(() => p.remove());
+  }
+}
+function burst(el, n) {
+  if (reduced || !el) return;
+  const r = el.getBoundingClientRect();
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('div'); s.className = 'spark';
+    s.style.left = (r.left + r.width * (.2 + Math.random() * .6)) + 'px'; s.style.top = (r.top + r.height * (.1 + Math.random() * .5)) + 'px';
+    s.style.setProperty('--dx', (Math.random() * 120 - 60) + 'px'); s.style.setProperty('--dy', (Math.random() * -90 - 10) + 'px');
+    document.body.appendChild(s); setTimeout(() => s.remove(), 950);
+  }
+}
+let toastTimer;
+function toast(msg, ms = 2800) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), ms); }
+
+/* ---------------- boot ---------------- */
+$('#hamper-drop').onclick = openHamper;
+$('#wash-btn').onclick = () => { const d = state.items.filter(i => i.status === 'laundry').map(i => i.id); if (d.length) wash(d); };
+(function boot() {
+  ART.closetClosed = closetArt(false); ART.closetOpen = closetArt(true);
+  ART.wx = Object.fromEntries(['sun', 'partly', 'cloud', 'rain'].map(k => [k, wxArt(k)]));
+  ART.cat = Object.fromEntries(CATS.map(c => [c, spriteURL({ subtype: CAT_ICON[c], primary: '#8b9bb4', pattern: 'solid', seed: 'icon' })]));
+  ART.lock = iconArt('lock'); ART.unlock = iconArt('unlock'); ART.nohat = iconArt('nohat');
+  $('#closet-img').src = ART.closetClosed; $('#cloud-img').src = cloudArt(); $('#wand-img').src = wandArt();
+  const rail = { weather: wxArt('partly'), style: iconArt('style'), plan: wandArt(), filter: iconArt('filter'), sort: iconArt('sort'), add: iconArt('add') };
+  document.querySelectorAll('.tool').forEach(b => b.querySelector('img').src = rail[b.dataset.tool]);
+  paintCanvas($('#logo'), textArt('Wardrobe Wizard'), 5);
+  paintCanvas($('#logo-small'), textArt('Wardrobe Wizard'), 3);
+  setupWeek();
+})();
+</script>
+</body>
+</html>
