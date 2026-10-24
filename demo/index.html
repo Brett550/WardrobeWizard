@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#ffffff" />
-    <meta name="description" content="A local wardrobe archive with flat-lay uploads and a Gemma 4 weekly outfit planner." />
+    <meta name="description" content="A local wardrobe archive with flat-lay uploads and a Gemma 3 weekly outfit planner." />
     <title>Wardrobe / Archive</title>
     <link rel="stylesheet" href="./styles.css?v=plan2" />
     <script src="./app.js?v=plan2" defer></script>
-    <script src="./planner.js?v=plan2" defer></script>
+    <script src="./planner.js?v=plan5" defer></script>
   </head>
   <body>
     <div class="site-shell">
@@ -55,14 +55,14 @@
             </div>
             <div class="plan-actions">
               <span id="plan-source" class="plan-source">SAMPLE PLAN</span>
-              <button id="generate-plan" class="generate-plan" type="button">GENERATE WITH GEMMA 4 <span>↗</span></button>
+              <button id="generate-plan" class="generate-plan" type="button">GENERATE WITH GEMMA 3 <span>↗</span></button>
             </div>
           </div>
           <p id="plan-status" class="plan-status" role="status" aria-live="polite"></p>
           <div class="plan-scroll">
             <div id="plan-grid" class="plan-grid" aria-label="Outfits for Monday through Sunday"></div>
           </div>
-          <p class="plan-privacy">Generating a plan sends your wardrobe item images and names to Gemma 4 for outfit matching.</p>
+          <p class="plan-privacy">Generating a plan sends your wardrobe item images and names to Gemma 3 12B IT through Amazon Bedrock.</p>
         </section>
       </main>
       <footer class="footer">

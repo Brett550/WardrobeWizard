@@ -1,8 +1,9 @@
-import { readdir } from "node:fs/promises";
+import { readdir, mkdir, writeFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { createWeeklyPlan } from "../server.mjs";
+import { createWardrobeBoards } from "../wardrobe-boards.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const names = (await readdir(join(root, "rendered"))).filter((name) => name.endsWith(".png")).sort();
@@ -23,8 +24,16 @@ const items = await Promise.all(selected.map(async (filename, index) => {
     image: image.toString("base64")
   };
 }));
-const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-if (!key) throw new Error("Set GEMINI_API_KEY before running the Gemma smoke test.");
-const plan = await createWeeklyPlan(items, key);
-console.log(`Gemma 4 returned ${plan.length} complete days.`);
+if (process.argv.includes("--preview")) {
+  const boards = await createWardrobeBoards(items);
+  const output = join(root, "candidates");
+  await mkdir(output, { recursive: true });
+  for (const board of boards) {
+    await writeFile(join(output, `board-${board.category}.jpg`), Buffer.from(board.image, "base64"));
+  }
+  console.log(`Wrote ${boards.length} preview boards to ${output}`);
+  process.exit(0);
+}
+const plan = await createWeeklyPlan(items, process.env.AWS_BEARER_TOKEN_BEDROCK);
+console.log(`Gemma 3 12B IT returned ${plan.length} complete days.`);
 for (const day of plan) console.log(`${day.day}: ${day.shirt} / ${day.pants} / ${day.shoes}`);

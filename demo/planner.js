@@ -51,7 +51,7 @@ function samplePlan(items, weekStart) {
 function loadStoredPlan(weekStart) {
   try {
     const saved = JSON.parse(localStorage.getItem(plannerStorageKey));
-    if (saved?.weekStart !== weekStart || saved?.source !== "gemma4" || saved.days?.length !== 7) return null;
+    if (saved?.weekStart !== weekStart || saved?.source !== "bedrock-gemma3" || saved.days?.length !== 7) return null;
     const items = plannerItems();
     if (saved.days.some((day) => plannerCategories.some((category) => {
       const id = day[category === "shirts" ? "shirt" : category === "pants" ? "pants" : "shoes"];
@@ -101,7 +101,7 @@ function renderPlan() {
     planner.plan = loadStoredPlan(weekStart) || samplePlan(items, weekStart);
   }
   const source = document.querySelector("#plan-source");
-  source.textContent = planner.plan.source === "gemma4" ? "GEMMA 4 / GENERATED" : "SAMPLE PLAN";
+  source.textContent = planner.plan.source === "bedrock-gemma3" ? "GEMMA 3 / GENERATED" : "SAMPLE PLAN";
   const grid = document.querySelector("#plan-grid");
   grid.replaceChildren();
   planner.plan.days.forEach((day, index) => {
@@ -155,17 +155,17 @@ async function checkPlannerServer() {
   try {
     const response = await fetch(`${plannerApiBase}/api/status`);
     if (!response.ok) {
-      setPlanStatus("Run npm run dev to connect the Gemma 4 planner.");
+      setPlanStatus("Run npm run dev to connect the Gemma 3 planner.");
       return false;
     }
     const status = await response.json();
     if (!status.configured) {
-      setPlanStatus("Set GEMINI_API_KEY and run npm run dev to generate with Gemma 4.");
+      setPlanStatus("Run aws configure or set AWS_BEARER_TOKEN_BEDROCK, then restart npm run dev.");
       return false;
     }
     return true;
   } catch {
-    setPlanStatus("Run npm run dev to connect the Gemma 4 planner.");
+    setPlanStatus("Run npm run dev to connect the Gemma 3 planner.");
     return false;
   }
 }
@@ -185,7 +185,7 @@ async function generatePlan() {
   const button = document.querySelector("#generate-plan");
   button.disabled = true;
   button.textContent = "BUILDING YOUR WEEK...";
-  setPlanStatus("Reviewing your wardrobe with Gemma 4...");
+  setPlanStatus("Reviewing your wardrobe with Gemma 3...");
   try {
     if (!await checkPlannerServer()) return;
     const catalog = await Promise.all(items.map(imageForPlanner));
@@ -195,18 +195,18 @@ async function generatePlan() {
       body: JSON.stringify({ items: catalog })
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "Gemma 4 could not make a plan.");
-    planner.plan = { source: "gemma4", weekStart: nextMonday(), days: result.days };
+    if (!response.ok) throw new Error(result.error || "Gemma 3 could not make a plan.");
+    planner.plan = { source: "bedrock-gemma3", weekStart: nextMonday(), days: result.days };
     localStorage.setItem(plannerStorageKey, JSON.stringify(planner.plan));
     renderPlan();
-    setPlanStatus("Your Gemma 4 plan is ready. Select a piece to see its wardrobe entry.");
+    setPlanStatus("Your Gemma 3 plan is ready. Select a piece to see its wardrobe entry.");
   } catch (error) {
     console.error(error);
     setPlanStatus(error.message || "Could not generate a plan. Try again.", true);
   } finally {
     planner.generating = false;
     button.disabled = false;
-    button.innerHTML = "GENERATE WITH GEMMA 4 <span>↗</span>";
+    button.innerHTML = "GENERATE WITH GEMMA 3 <span>↗</span>";
   }
 }
 
@@ -221,7 +221,7 @@ async function showView(view) {
   document.querySelector("#plan-tab").setAttribute("aria-selected", String(plan));
   if (plan) {
     renderPlan();
-    if (!planner.checkedServer && planner.plan.source !== "gemma4") {
+    if (!planner.checkedServer && planner.plan.source !== "bedrock-gemma3") {
       planner.checkedServer = true;
       if (await checkPlannerServer()) await generatePlan();
     }

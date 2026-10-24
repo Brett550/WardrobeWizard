@@ -4,13 +4,7 @@ A local wardrobe mock based on the supplied Yeezy UI reference. The Wardrobe vie
 
 ## Run
 
-Put your Google AI Studio API key in `demo/.env`:
-
-```dotenv
-GEMINI_API_KEY=your-api-key
-```
-
-Then start the local app:
+If you already ran `aws configure` for the default profile, start the app without adding a bearer key:
 
 ```powershell
 cd demo
@@ -18,15 +12,24 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:8000`. If you already preview the website at `http://127.0.0.1:3000` or another local port, the Plan view will also connect to the Node API at `http://127.0.0.1:8000` while `npm run dev` is running. The Node server loads `.env` and uses Google's `@google/genai` JavaScript SDK to request plans from `gemma-4-26b-a4b-it`. The API key stays on the server, and `.env` is ignored by Git. An existing shell `GEMINI_API_KEY` takes precedence over the value in `.env`. Without a key or a running Node server, the Plan view shows a labeled sample week.
+For a named profile, set `AWS_PROFILE` in your shell before starting the app. You can also set `AWS_REGION` in `demo/.env` to override the profile's Region. The selected Region must offer Gemma 3 12B IT.
+
+Alternatively, put an Amazon Bedrock API key in `demo/.env`:
+
+```dotenv
+AWS_BEARER_TOKEN_BEDROCK=your-bedrock-api-key
+AWS_REGION=us-east-1
+```
+
+Open `http://localhost:8000`. If you already preview the website at `http://127.0.0.1:3000` or another local port, the Plan view will also connect to the Node API at `http://127.0.0.1:8000` while `npm run dev` is running. With configured AWS credentials, the server calls Bedrock's Converse API through the AWS SDK. With `AWS_BEARER_TOKEN_BEDROCK`, it calls Bedrock's Chat Completions endpoint through the OpenAI JavaScript SDK. Both use `google.gemma-3-12b-it`. The bearer key stays on the server, and `.env` is ignored by Git. Environment variables already set in your shell take precedence over `.env`. Without usable credentials or a running Node server, the Plan view shows a labeled sample week.
 
 Use **ADD A PIECE** to upload a flat-lay photo. The site automatically removes the background, centers the clothing on a transparent square, and saves both the original and cutout in this browser using IndexedDB. Transparent PNG uploads skip background removal. Saved looks use localStorage.
 
 Background removal uses the [ORMBG ONNX model](https://huggingface.co/onnx-community/ormbg-ONNX) through [Transformers.js](https://huggingface.co/docs/transformers.js/en/index). The first upload needs internet access to fetch the library and model. Processing happens in the browser.
 
-When you open Plan, the app generates a Gemma 4 week if there is no saved plan for the upcoming Monday. **GENERATE WITH GEMMA 4** refreshes it. The planner sends reduced copies of the wardrobe images, names, and categories to the Google API, then saves only the selected item IDs and brief explanations in localStorage. The server validates that every recommendation refers to a piece in the wardrobe.
+When you open Plan, the app generates a Gemma 3 week if there is no saved plan for the upcoming Monday. **GENERATE WITH GEMMA 3** refreshes it. The planner sends contact sheets of the wardrobe images, names, and categories to Amazon Bedrock, then saves only the selected item IDs and brief explanations in localStorage. The server validates that every recommendation refers to a piece in the wardrobe.
 
-The server uses the machine's DNS settings first. If they cannot resolve Google's API host, it falls back to Google's public DNS (`8.8.8.8`) for that host only. This does not change Windows DNS settings. If Plan still reports a DNS or connection error, check the machine's internet connection and VPN settings, then restart `npm run dev` and try again.
+If Bedrock rejects a request, check the selected AWS profile or bearer key, the Region, and access to the model there. If Plan reports a network error, check the machine's internet connection and VPN settings.
 
 ## Rebuild the sample images
 

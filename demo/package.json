@@ -7,11 +7,11 @@
     "render-seeds": "node scripts/render-flat-lays.mjs"
   },
   "devDependencies": {
-    "@huggingface/transformers": "3.8.1",
-    "sharp": "^0.34.4"
+    "@huggingface/transformers": "3.8.1"
   },
   "dependencies": {
-    "@google/genai": "^2.31.0",
-    "undici": "^8.12.3"
+    "@aws-sdk/client-bedrock-runtime": "^3.1156.0",
+    "openai": "^7.43.0",
+    "sharp": "^0.34.4"
   }
 }
